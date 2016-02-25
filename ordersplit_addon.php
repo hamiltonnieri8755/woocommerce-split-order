@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: WooCommerce Split Order Addon 
+ * Plugin Name: WooCommerce Split Order
  * Plugin URI: https://www.wplab.com/
  * Description: An e-commerce toolkit that helps you split woocommerce order
  * Version: 1.0
