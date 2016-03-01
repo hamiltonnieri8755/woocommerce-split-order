@@ -30,3 +30,10 @@
 // Including WP core file
 if ( ! function_exists( 'get_plugins' ) )
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+// Whether plugin active or not
+if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
+  
+else :
+
+endif;
