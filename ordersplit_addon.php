@@ -31,9 +31,53 @@
 if ( ! function_exists( 'get_plugins' ) )
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
+// Including base class
+if ( ! class_exists( 'WC_Split_Order' ) )
+    require_once plugin_dir_path( __FILE__ ) . 'class-wc-split-order.php';
+
 // Whether plugin active or not
 if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
-  
+
+	/**
+	 * Display Metabox Shippment Tracking on order admin page
+	 **/
+
+	add_action( 'add_meta_boxes', 'wso_add_meta_boxes' );
+
+	function wso_add_meta_boxes(){
+
+	    add_meta_box(
+	        'woocommerce-split-order',
+	        'Split current order',
+	        'split_order',
+	        'shop_order',
+	        'side',
+	        'default'
+	    );
+
+	}
+	/**
+	 * Outputs the content of the meta box
+	 */
+	function split_order( $post ) {
+	
+		// The object
+	    $wso = new WC_Split_Order( $post );
+	    $wso->output_metabox_content();
+	}
 else :
+
+	/**
+     * Getting notice if WooCommerce not active
+     * 
+     * @return string
+     */
+	function wso_notice() {
+        global $current_screen;
+        if ( $current_screen->parent_base == 'plugins' ) {
+            echo '<div class="error"><p>'.__( 'The <strong>WooCommerce Split Order</strong> plugin requires the <a href="http://wordpress.org/plugins/woocommerce" target="_blank">WooCommerce</a> plugin to be activated in order to work. Please <a href="'.admin_url( 'plugin-install.php?tab=search&type=term&s=WooCommerce' ).'" target="_blank">install WooCommerce</a> or <a href="'.admin_url( 'plugins.php' ).'">activate</a> first.' ).'</p></div>';
+        }
+    }
+    add_action( 'admin_notices', 'wso_notice' );
 
 endif;
