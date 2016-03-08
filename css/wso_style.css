@@ -1,0 +1,45 @@
+.modal-window-wrapper {
+    width: 100%;
+    min-height: 500px;
+    padding-bottom: 45px;
+    position: relative;
+}
+
+.button-wrapper {
+    position: absolute;
+    bottom: 10px;
+    right: 30px;
+}
+
+.button-wrapper .split-order {
+    margin-right: 12px;
+}
+
+.itemlist-wrapper {
+    width: 100%;
+}
+
+.itemlist-wrapper tr {
+    height: 35px;
+}
+
+.itemlist-wrapper tr td:nth-child(1) {
+    width: 50px;
+    text-align: center;
+}
+
+.itemlist-wrapper tr td:nth-child(2) {
+    width: 450px;
+}
+
+.itemlist-wrapper tr td:nth-child(3) {
+    width: 70px;
+}
+
+.itemlist-wrapper tr td:nth-child(3) .order-item-qty {
+    display: none;
+}
+
+.itemlist-wrapper tr td:nth-child(3) .order-item-qty {
+    width: 100%;
+}

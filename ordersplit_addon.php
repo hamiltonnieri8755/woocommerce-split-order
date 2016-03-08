@@ -33,7 +33,7 @@ if ( ! function_exists( 'get_plugins' ) )
 
 // Including base class
 if ( ! class_exists( 'WC_Split_Order' ) )
-    require_once plugin_dir_path( __FILE__ ) . 'class-wc-split-order.php';
+    require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order.php';
 
 // Whether plugin active or not
 if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
@@ -49,22 +49,28 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	    add_meta_box(
 	        'woocommerce-split-order',
 	        'Split current order',
-	        'split_order',
+	        'split_order_meta',
 	        'shop_order',
 	        'side',
 	        'default'
 	    );
 
 	}
+
+	// global 
+	$wso = NULL;
+
 	/**
 	 * Outputs the content of the meta box
 	 */
-	function split_order( $post ) {
-	
+	function split_order_meta( $post ) {
+		
 		// The object
+		global $wso;
 	    $wso = new WC_Split_Order( $post );
 	    $wso->output_metabox_content();
 	}
+
 else :
 
 	/**
