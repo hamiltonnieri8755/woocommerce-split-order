@@ -55,4 +55,5 @@ jQuery(".split-order").click( function () {
 		return;
 	}
 	console.log(JSON.stringify(newOrderData))
+	console.log("<?php $this->order_ID?>");
 });

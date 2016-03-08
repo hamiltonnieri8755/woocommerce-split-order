@@ -33,7 +33,7 @@ if ( ! function_exists( 'get_plugins' ) )
 
 // Including base class
 if ( ! class_exists( 'WC_Split_Order' ) )
-    require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order.php';
+    require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order-ui.php';
 
 // Whether plugin active or not
 if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
@@ -67,7 +67,7 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 		
 		// The object
 		global $wso;
-	    $wso = new WC_Split_Order( $post );
+	    $wso = new WC_Split_Order_UI( $post );
 	    $wso->output_metabox_content();
 	}
 
