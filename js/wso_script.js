@@ -38,14 +38,14 @@ jQuery(".close-modal").click( function () {
 });
 
 jQuery(".split-order").click( function () {
-	var newOrderData = {};
+	var newOrderData = [];
 	var isNull = true;
 	jQuery(".itemlist-wrapper tr").each( function () {
 		if ( jQuery(this).find(".flag_add").prop("checked") )
 		{
 			var itemID = jQuery(this).data("id");
 			var curVal = jQuery(this).find(".order-item-qty").val();
-			newOrderData[itemID] = curVal;
+			newOrderData.push( [itemID, curVal] );
 			isNull = false; 
 		}
 	})
@@ -54,6 +54,12 @@ jQuery(".split-order").click( function () {
 		alert("Please select at least one product");
 		return;
 	}
-	console.log(JSON.stringify(newOrderData))
-	console.log("<?php $this->order_ID?>");
+	var orderData = {};
+	orderData["order_id"] = jQuery(this).parent().data("id");
+	orderData.line_items = newOrderData;
+	console.log(orderData);
+	jQuery.post( ajaxurl, { 'action':'split_order', 'orderData' : orderData }, function (result) {
+		console.log(result);
+	});
+
 });

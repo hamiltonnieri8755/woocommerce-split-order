@@ -1,20 +1,18 @@
 <?php
 /**
- * @class         WSC_Country_Sales
- * @since         1.4
- * @package       WooCommerce Sales by Country
- * @subpackage    Base class
- * @author        MH Mithu <mail@mithu.me>
- * @link          https://github.com/mhmithu
+ * @class         WC_Split_Orer_UI
+ * @since         
+ * @package       WooCommerce Split Order
  * @license       http://www.gnu.org/licenses/gpl-3.0.html
  *
  */
 
+// Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
-    exit; // Exit if accessed directly
+    exit; 
 }
 
-if ( ! class_exists( 'WC_Admin_Dashboard' ) ) :
+if ( ! class_exists( 'WC_Split_Order_UI' ) ) :
 
 /**
  * WC_Split_Order Class.
@@ -46,10 +44,10 @@ class WC_Split_Order_UI {
     public function __construct( $post ) {
 
         $this->order_ID = absint( $post->ID );
-      	$this->order_items = array();
-      	$order = new WC_Order( $post );
-	    $items = $order->get_items();
-		foreach ( $items as $item ) {
+        $this->order_items = array();
+        $order = wc_get_order( $post );
+        $items = $order->get_items();
+        foreach ( $items as $item ) {
 			$product_id = $item['product_id'];
 			$product_name = $item['name'];
             $product_qty = $item['qty'];
@@ -67,6 +65,7 @@ class WC_Split_Order_UI {
 ?>
 	   <a href="#TB_inline?width=600&height=550&inlineId=split-order-modal" class="button thickbox open-modal">Split Order</a>   
 <?php
+print_r(get_metadata("post", $this->order_ID));
     	$this->generate_modal_content();
     }
 
@@ -77,6 +76,7 @@ class WC_Split_Order_UI {
      * @return 
      */
     public function generate_modal_content() {
+
 ?>
         <div id="split-order-modal" style="display:none;">
             <div class="modal-window-wrapper">
@@ -99,7 +99,7 @@ class WC_Split_Order_UI {
                         ?>
                     </tbody>
                 </table>
-                <div class="button-wrapper" data-url="<?php echo plugins_url( 'core/split_order.php', dirname(__FILE__)); ?>" data-id="<?php echo $this->order_ID; ?>">
+                <div class="button-wrapper" data-id="<?php echo $this->order_ID; ?>">
                     <a class="button button-primary split-order">Split Order</a>
                     <a class="button close-modal">Cancel</a>
                 </div>

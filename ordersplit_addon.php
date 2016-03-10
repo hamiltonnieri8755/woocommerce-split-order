@@ -32,7 +32,7 @@ if ( ! function_exists( 'get_plugins' ) )
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 // Including base class
-if ( ! class_exists( 'WC_Split_Order' ) )
+if ( ! class_exists( 'WC_Split_Order_UI' ) )
     require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order-ui.php';
 
 // Whether plugin active or not
@@ -71,6 +71,32 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	    $wso->output_metabox_content();
 	}
 
+	/**
+	 * 
+	 */
+	add_action( 'wp_ajax_split_order', 'split_order_action' );
+
+	function split_order_action() {
+
+		if ( ! class_exists( 'WC_Split_Order' ) )
+	    	require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order.php';
+
+		if( ! isset($_POST['orderData']) )
+		{
+			echo 0;
+			exit;
+		}
+
+		$input = $_POST['orderData'];
+
+	    $order_id = $input['order_id'];
+	    $line_items = $input['line_items'];
+
+	    $wso = new WC_Split_Order( $order_id, $line_items );
+
+	    exit;
+	}
+
 else :
 
 	/**
@@ -87,3 +113,4 @@ else :
     add_action( 'admin_notices', 'wso_notice' );
 
 endif;
+
