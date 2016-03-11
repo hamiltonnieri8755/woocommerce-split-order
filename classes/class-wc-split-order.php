@@ -19,181 +19,297 @@ if ( ! class_exists( 'WC_Split_Order' ) ) :
  */
 class WC_Split_Order {
 
-	/**
-	 * Original Order
-	 *
-	 * @access private
-	 * @var    WC_Order
+	/** 
+	 *	Original Order ID
+	 *	Int
+	 */
+	private $original_order_id;
+
+	/** 
+	 *	Original Order 
+	 *	WC_Order
 	 */
 	private $orignal_order;
 
-	/**
-	 * Current User
-	 *
-	 * @access private
-	 * @var    WC_Customer
+	/** 
+	 *	Line Items
+	 *	Array
 	 */
-	private $current_user;
+	private $line_items;
 
-    /**
-     * Line Items
-     *
-     * @access private
-     * @var    array
-     */
-    private $line_items;
+	/** 
+	 *	Temporary variable to show return value
+	 *	String
+	 */
+	public $message;
 
-    /**
-     * New Order ID
-     *
-     * @access private
-     * @var    int
-     */
-    private $newOrderID;
+	/** 
+	 *	Line Items
+	 *	Array
+	 */
+	public $newOrderID;
 
 	/**
      * Class constructor
-     *
-     * @access public
-     * @param 
      */
     public function __construct( $order_id, $line_items ) {
-    	$this->original_order = wc_get_order( $order_id );
-    	$this->current_user = wp_get_current_user();
+
+    	// Initialize class var
+    	$this->original_order_id = $order_id;
     	$this->line_items = $line_items;
 
-    	$this->createOrder();
-    	$this->updateOrderHeader();
-    	$this->updateShippingFlds();
-    	$this->updateBillingFlds();
+    	// Create WC_Order Obj for original order
+    	$this->original_order = wc_get_order( $this->original_order_id );
+
+    	// Main Function
+    	$this->main();
+    }
+
+   	/**
+     * Main
+     * @param  void
+     * @return bool
+     */
+    private function Main() {
+
+    	// Duplicate Order ( Make a new order exactly same as original one )
+    	$this->duplicateOrder();
+
+    	// Update New Order ( Remove Items which are not included in new order )
+    	$this->updateNewOrder();
+
+    	return true;
+    }
+
+    /**
+     * Update New Order
+     * @param  void
+     * @return bool
+     */
+    private function updateNewOrder() {
+
+    	$newOrderItems = array();
+
+    	$newOrder = wc_get_order( $this->newOrderID );
+    	
+    	foreach ( $this->line_items as $key => $element ) {
+    		
+    		$newOrderItems[$element[1]] = $element[2];
+    		
+    	}
+
+    	foreach ( $newOrder->get_items() as $key => $newItem) {
+    		
+    		$newItem_orderID = $key;
+    		$newItem_prodID  = $newItem['product_id'];
+
+    		if ( ! isset($newOrderItems[$newItem_prodID]) ) {
+    			// Remove this item
+    			wc_delete_order_item($newItem_orderID);
+    		}
+ 			else {
+ 				// Update this item's qty
+ 				$curProduct = new WC_Product( $newItem_prodID );
+ 				$newOrder->update_product( $newItem_orderID, $curProduct, array( "qty" => $newOrderItems[$newItem_prodID] ) );
+ 			}
+    		
+    	}
+
+    	$newOrder->calculate_totals();
+
+    	return true;
+    }
+
+    /**
+     * Update Original Order
+     * @param  void
+     * @return bool
+     */
+    private function updateOriginalOrder() {
+
+    	$newOrderItems = array();
+    	
+    	foreach ( $this->line_items as $key => $element ) {
+    		
+    		$newOrderItems[$element[0]] = $element[2];
+    		
+    	}
+
+    	foreach ( $this->orignal_order->get_items() as $key => $originalItem) {
+
+    		$originalItem_orderID = $key;
+    		$originalItem_qty 	  = $originalItem['qty'];
+
+    		if ( isset($newOrderItems[$originalItem_orderID]) ) {
+    			if ( $originalItem_qty == $newOrderItems[$originalItem_orderID] ) {
+    				// Remove this item
+    				wc_delete_order_item($originalItem_orderID);
+    			} else {
+    				// Update this item's qty
+    				$curProduct = new WC_Product( $originalItem['product_id'] );
+ 					$newOrder->update_product( $newItem_orderID, $curProduct, array( "qty" => $newOrderItems[$originalItem_orderID] ) );
+    			}    			
+    		}
+   
+    	}
+
+    	$this->original_order->calculate_totals();
+
+    	return true;
     }
 
 	/**
-     * Create Order
-     *
-     * @access 	private
-     * @param 	void
-     * @return 	bool
+     * Duplicate Order
+     * @param  void
+     * @return bool
      */
-    private function createOrder() {
-		//1 Create Order
-	    $order_data =  array(
-	        'post_type'     => 'shop_order',
-	        'post_title'    => sprintf( __( 'Auto-Ship Order &ndash; %s', 'woocommerce' ), strftime( _x( '%b %d, %Y @ %I:%M %p', 'Order date parsed by strftime', 'woocommerce' ) ) ),
-	        'post_status'   => 'publish',
-	        'ping_status'   => 'closed',
-	        'post_excerpt'  => 'Auto-Ship Order based on original order ' . $this->original_order->id,
-	        'post_author'   => $this->current_user->ID,
-	        'post_password' => uniqid( 'order_' )   // Protects the post just in case
-	    );
+    private function duplicateOrder() {
 
-	    $this->newOrderID = wp_insert_post( $order_data, true );
+    	// Create Order ; post
+    	$this->createOrder();
+    	
+    	// Add Order Data ; postmeta
+    	$this->duplicateOrderData();
+    	
+    	// Duplicate Items - line_item, shipping and coupon ; order_item, order_itemmeta
+    	$this->duplicateLineItems();
+    	$this->duplicateShippingItems();
+    	$this->duplicateCouponItems();
 
-	    if ( is_wp_error( $this->newOrderID ) ) {
-		   return false;
-		}
-
-		return true;
+    	return true;
     }
 
-   	/**
+    /**
      * Create Order
-     *
-     * @access 	private
-     * @param 	void
-     * @return 	void
+     * @param  void
+     * @return bool
      */
-   	private function updateOrderHeader() {
-   		$original_order_id = $this->original_order->id;
-		update_post_meta( $this->newOrderID, '_order_shipping',         get_post_meta($original_order_id, '_order_shipping', true) );
-        update_post_meta( $this->newOrderID, '_order_discount',         get_post_meta($original_order_id, '_order_discount', true) );
-        update_post_meta( $this->newOrderID, '_cart_discount',          get_post_meta($original_order_id, '_cart_discount', true) );
-        update_post_meta( $this->newOrderID, '_order_tax',              get_post_meta($original_order_id, '_order_tax', true) );
-        update_post_meta( $this->newOrderID, '_order_shipping_tax',     get_post_meta($original_order_id, '_order_shipping_tax', true) );
-        update_post_meta( $this->newOrderID, '_order_total',            get_post_meta($original_order_id, '_order_total', true) );
+    private function createOrder() {
 
-        update_post_meta( $this->newOrderID, '_order_key',              'wc_' . apply_filters('woocommerce_generate_order_key', uniqid('order_') ) );
-        update_post_meta( $this->newOrderID, '_customer_user',          get_post_meta($original_order_id, '_customer_user', true) );
-        update_post_meta( $this->newOrderID, '_order_currency',         get_post_meta($original_order_id, '_order_currency', true) );
-        update_post_meta( $this->newOrderID, '_prices_include_tax',     get_post_meta($original_order_id, '_prices_include_tax', true) );
-        update_post_meta( $this->newOrderID, '_customer_ip_address',    get_post_meta($original_order_id, '_customer_ip_address', true) );
-        update_post_meta( $this->newOrderID, '_customer_user_agent',    get_post_meta($original_order_id, '_customer_user_agent', true) );
-   	}
+    	$original_PostData = get_post($this->original_order_id, "ARRAY_A");
+    	unset($original_PostData['ID']);
+    	
+    	// to test easily
+    	$original_PostData['post_status'] = 'publish';
 
-   	/**
-     * Update billing address fields
-     *
-     * @access 	private
-     * @param 	void
-     * @return 	void
+    	$new_PostData = $original_PostData;
+
+    	$this->newOrderID = wp_insert_post( $new_PostData, true );
+
+    	if ( is_wp_error( $this->newOrderID ) ) {
+    		return false;
+    	}
+
+    	return true;
+    }
+
+    /**
+     * Duplicate Post Meta Data
+     * @param  void
+     * @return bool
      */
-   	private function updateBillingFlds() {
-   		$original_order_id = $this->original_order->id;
-   		update_post_meta( $this->newOrderID, '_billing_city',           get_post_meta($original_order_id, '_billing_city', true));
-        update_post_meta( $this->newOrderID, '_billing_state',          get_post_meta($original_order_id, '_billing_state', true));
-        update_post_meta( $this->newOrderID, '_billing_postcode',       get_post_meta($original_order_id, '_billing_postcode', true));
-        update_post_meta( $this->newOrderID, '_billing_email',          get_post_meta($original_order_id, '_billing_email', true));
-        update_post_meta( $this->newOrderID, '_billing_phone',          get_post_meta($original_order_id, '_billing_phone', true));
-        update_post_meta( $this->newOrderID, '_billing_address_1',      get_post_meta($original_order_id, '_billing_address_1', true));
-        update_post_meta( $this->newOrderID, '_billing_address_2',      get_post_meta($original_order_id, '_billing_address_2', true));
-        update_post_meta( $this->newOrderID, '_billing_country',        get_post_meta($original_order_id, '_billing_country', true));
-        update_post_meta( $this->newOrderID, '_billing_first_name',     get_post_meta($original_order_id, '_billing_first_name', true));
-        update_post_meta( $this->newOrderID, '_billing_last_name',      get_post_meta($original_order_id, '_billing_last_name', true));
-        update_post_meta( $this->newOrderID, '_billing_company',        get_post_meta($original_order_id, '_billing_company', true));
-   	}
+    private function duplicateOrderData() {
 
-   	/**
-   	 * Update shipping address fields
-   	 *
-   	 * @access 	private
-   	 * @param 	void
-   	 * @return 	void
-   	 */
-   	private function updateShippingFlds() {
-   		$original_order_id = $this->original_order->id;
-   		update_post_meta( $this->newOrderID, '_shipping_country',       get_post_meta($original_order_id, '_shipping_country', true));
-        update_post_meta( $this->newOrderID, '_shipping_first_name',    get_post_meta($original_order_id, '_shipping_first_name', true));
-        update_post_meta( $this->newOrderID, '_shipping_last_name',     get_post_meta($original_order_id, '_shipping_last_name', true));
-        update_post_meta( $this->newOrderID, '_shipping_company',       get_post_meta($original_order_id, '_shipping_company', true));
-        update_post_meta( $this->newOrderID, '_shipping_address_1',     get_post_meta($original_order_id, '_shipping_address_1', true));
-        update_post_meta( $this->newOrderID, '_shipping_address_2',     get_post_meta($original_order_id, '_shipping_address_2', true));
-        update_post_meta( $this->newOrderID, '_shipping_city',          get_post_meta($original_order_id, '_shipping_city', true));
-        update_post_meta( $this->newOrderID, '_shipping_state',         get_post_meta($original_order_id, '_shipping_state', true));
-        update_post_meta( $this->newOrderID, '_shipping_postcode',      get_post_meta($original_order_id, '_shipping_postcode', true));
-   	}
+    	$original_MetaData = get_metadata( "post", $this->original_order_id );
+    	$original_MetaData['_order_number'][0] = $this->newOrderID;
 
-   	/**
-   	 * Add line items
-   	 *
-   	 * @access 	private
-   	 * @param 	void
-   	 * @return 	void
-   	 */
-   	private function addLineItems() {
-   		foreach( $this->original_order->get_items() as $originalOrderItem ) {
+    	foreach ( $original_MetaData as $key => $value ) {
+    		update_metadata( "post", $this->newOrderID, $key, $value[0] );
+    	}
 
-            $itemName = $originalOrderItem['name'];
-            $qty = $originalOrderItem['qty'];
-            $lineTotal = $originalOrderItem['line_total'];
-            $lineTax = $originalOrderItem['line_tax'];
-            $productID = $originalOrderItem['product_id'];
+    	return true;
+    }
 
-            $item_id = wc_add_order_item( $order_id, array(
+    /**
+     * Duplicate Line Items
+     * @param  void
+     * @return bool
+     */
+    private function duplicateLineItems() {
+
+    	foreach ( $this->original_order->get_items() as $originalOrderItem) {
+    		$itemName 	 = $originalOrderItem['name'];
+            $itemQty 	 = $originalOrderItem['qty'];
+            $tax_class 	 = $originalOrderItem['tax_class'];
+            $productID	 = $originalOrderItem['product_id'];
+            $variationID = $originalOrderItem['variation_id'];
+            $subtotal    = $originalOrderItem['line_subtotal'];
+            $line_total  = $originalOrderItem['line_total'];
+            $subttl_tax  = $originalOrderItem['line_subtotal_tax'];
+            $line_tax 	 = $originalOrderItem['line_tax'];
+            $line_tax_d  = $originalOrderItem['line_tax_data'];
+
+            $item_id = wc_add_order_item( $this->newOrderID, array(
                 'order_item_name'       => $itemName,
                 'order_item_type'       => 'line_item'
             ) );
 
-            wc_add_order_item_meta( $item_id, '_qty', $qty );
-            //wc_add_order_item_meta( $item_id, '_tax_class', $_product->get_tax_class() );
+            wc_add_order_item_meta( $item_id, '_qty', $itemQty );
+            wc_add_order_item_meta( $item_id, '_tax_class', $tax_class );
             wc_add_order_item_meta( $item_id, '_product_id', $productID );
-            //wc_add_order_item_meta( $item_id, '_variation_id', $values['variation_id'] );
-            wc_add_order_item_meta( $item_id, '_line_subtotal', wc_format_decimal( $lineTotal ) );
-            wc_add_order_item_meta( $item_id, '_line_total', wc_format_decimal( $lineTotal ) );
-            wc_add_order_item_meta( $item_id, '_line_tax', wc_format_decimal( '0' ) );
-            wc_add_order_item_meta( $item_id, '_line_subtotal_tax', wc_format_decimal( '0' ) );
+            wc_add_order_item_meta( $item_id, '_variation_id', $variationID );
+            wc_add_order_item_meta( $item_id, '_line_subtotal', $subtotal );
+            wc_add_order_item_meta( $item_id, '_line_total', $line_total );
+            wc_add_order_item_meta( $item_id, '_line_subtotal_tax', $subttl_tax );
+            wc_add_order_item_meta( $item_id, '_line_tax', $line_tax );
+            wc_add_order_item_meta( $item_id, '_line_tax_data', $line_tax_d );
+    	}
 
+    	return true;
+    }
+
+    /**
+     * Duplicate Shipping Items
+     * @param  void
+     * @return bool
+     */
+    private function duplicateShippingItems() {
+
+ 		$original_order_shipping_items = $this->original_order->get_items('shipping');
+        
+        foreach ( $original_order_shipping_items as $original_order_shipping_item ) {
+
+            $item_id = wc_add_order_item( $this->newOrderID, array(
+                'order_item_name' => $original_order_shipping_item['name'],
+                'order_item_type' => 'shipping'
+            ) );
+
+            if ( $item_id ) {
+                wc_add_order_item_meta( $item_id, 'method_id', $original_order_shipping_item['method_id'] );
+                wc_add_order_item_meta( $item_id, 'cost', wc_format_decimal( $original_order_shipping_item['cost'] ) );
+            }
         }
-   	}
+
+        return true;
+    }
+
+    /**
+     * Duplicate Coupon Items
+     * @param  void
+     * @return bool
+     */
+    private function duplicateCouponItems() {
+
+ 		$original_order_coupons = $this->original_order->get_items('coupon');
+
+        foreach ( $original_order_coupons as $original_order_coupon ) {
+            $item_id = wc_add_order_item( $this->newOrderID, array(
+                'order_item_name' => $original_order_coupon['name'],
+                'order_item_type' => 'coupon'
+            ) );
+            
+            if ( $item_id ) {
+                wc_add_order_item_meta( $item_id, 'discount_amount', $original_order_coupon['discount_amount'] );
+            }
+        }
+
+        return true;
+    }
+
 }
 
 endif;
+
+/**
+ *	get_order
+ */

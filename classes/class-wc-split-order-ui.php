@@ -47,11 +47,12 @@ class WC_Split_Order_UI {
         $this->order_items = array();
         $order = wc_get_order( $post );
         $items = $order->get_items();
-        foreach ( $items as $item ) {
-			$product_id = $item['product_id'];
-			$product_name = $item['name'];
-            $product_qty = $item['qty'];
-			array_push( $this->order_items, array($product_id, $product_name, $product_qty) );
+        foreach ( $items as $key => $item ) {
+			$order_item_id = $key;
+            $product_id    = $item['product_id'];
+			$product_name  = $item['name'];
+            $product_qty   = $item['qty'];
+			array_push( $this->order_items, array($order_item_id, $product_id, $product_name, $product_qty) );
 		}
 
 		// Enqueue script hook
@@ -65,7 +66,6 @@ class WC_Split_Order_UI {
 ?>
 	   <a href="#TB_inline?width=600&height=550&inlineId=split-order-modal" class="button thickbox open-modal">Split Order</a>   
 <?php
-print_r(get_metadata("post", $this->order_ID));
     	$this->generate_modal_content();
     }
 
@@ -90,10 +90,10 @@ print_r(get_metadata("post", $this->order_ID));
                         <?php
                             foreach ( $this->order_items as $item )
                             {
-                                echo "<tr data-id='" . $item[0] . "'>";
+                                echo "<tr data-id='" . $item[0] . "' data-product_id='" . $item[1] . "'>";
                                 echo "<td><input type='checkbox' class='flag_add'></td>";
-                                echo "<td>" . $item[1] . "</td>";
-                                echo "<td><input type='number' min='1' class='order-item-qty' max='" . $item[2] . "'></td>";
+                                echo "<td>" . $item[2] . "</td>";
+                                echo "<td><input type='number' min='1' class='order-item-qty' max='" . $item[3] . "'></td>";
                                 echo "</tr>";
                             }
                         ?>

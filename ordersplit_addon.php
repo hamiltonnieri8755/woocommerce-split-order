@@ -72,10 +72,9 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	}
 
 	/**
-	 * 
+	 * WP AJAX called by "Split" button on edit order page
 	 */
 	add_action( 'wp_ajax_split_order', 'split_order_action' );
-
 	function split_order_action() {
 
 		if ( ! class_exists( 'WC_Split_Order' ) )
@@ -93,6 +92,7 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	    $line_items = $input['line_items'];
 
 	    $wso = new WC_Split_Order( $order_id, $line_items );
+	    print_r( $wso->message );
 
 	    exit;
 	}
