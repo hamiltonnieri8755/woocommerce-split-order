@@ -79,7 +79,7 @@ class WC_Split_Order {
     	$this->updateNewOrder();
 
     	// Update Original Order ( Remove Items which are not included in original order, Update Items' qty )
-    	//$this->updateOriginalOrder();
+    	$this->updateOriginalOrder();
 
     	return true;
     }

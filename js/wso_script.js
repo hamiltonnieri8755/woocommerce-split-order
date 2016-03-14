@@ -44,6 +44,10 @@ jQuery(".close-modal").click( function () {
 
 jQuery(".split-order").click( function () {
 
+	tb_remove();
+
+	jQuery(".open-modal").replaceWith("<p>Splitting order...</p>");
+
 	var newOrderData = [];
 	var isNull = true;
 	var newOrderItemCnt = 0;
@@ -80,10 +84,20 @@ jQuery(".split-order").click( function () {
 	orderData["order_id"] = jQuery(this).parent().data("id");
 	orderData.line_items = newOrderData;
 
-	console.log(orderData);
-
-	jQuery.post( ajaxurl, { 'action':'split_order', 'orderData' : orderData }, function (result) {
-		console.log(result);
+	jQuery.post( ajaxurl, { 'action':'split_order', 'orderData' : orderData }, function (result) { 
+		if(typeof(Storage) !== "undefined") {
+		    localStorage.setItem( "parent" + jQuery(".button-wrapper").data("id"), result );
+		}
+		location.reload();
 	});
 
+});
+
+jQuery(document).ready(function () {
+	if ( localStorage.getItem( "parent" + jQuery(".button-wrapper").data("id") ) ) {
+		var url = jQuery(location).attr("href");
+		url = url.replace( "post=" + jQuery(".button-wrapper").data("id"), "post=" + localStorage.getItem( "parent" + jQuery(".button-wrapper").data("id") ) );
+		jQuery(".open-modal").parent().append("<br/><br/><a href='" + url + "'>Link to new child order</a>");
+		localStorage.removeItem( "parent" + jQuery(".button-wrapper").data("id") );
+	}
 });

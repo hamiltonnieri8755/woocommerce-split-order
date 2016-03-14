@@ -92,7 +92,7 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	    $line_items = $input['line_items'];
 
 	    $wso = new WC_Split_Order( $order_id, $line_items );
-	    print_r( $wso->message );
+	    echo $wso->newOrderID;
 
 	    exit;
 	}
