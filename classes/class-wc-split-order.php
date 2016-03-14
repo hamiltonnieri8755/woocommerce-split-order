@@ -38,12 +38,6 @@ class WC_Split_Order {
 	private $line_items;
 
 	/** 
-	 *	Temporary variable to show return value
-	 *	String
-	 */
-	public $message;
-
-	/** 
 	 *	Line Items
 	 *	Array
 	 */
@@ -199,9 +193,6 @@ class WC_Split_Order {
     	$original_PostData = get_post($this->original_order_id, "ARRAY_A");
     	unset($original_PostData['ID']);
     	
-    	// to test easily
-    	$original_PostData['post_status'] = 'publish';
-
     	$new_PostData = $original_PostData;
 
     	$this->newOrderID = wp_insert_post( $new_PostData, true );
