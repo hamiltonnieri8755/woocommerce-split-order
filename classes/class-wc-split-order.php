@@ -29,7 +29,7 @@ class WC_Split_Order {
 	 *	Original Order 
 	 *	WC_Order
 	 */
-	private $orignal_order;
+	private $original_order;
 
 	/** 
 	 *	Line Items
@@ -62,7 +62,7 @@ class WC_Split_Order {
     	$this->original_order = wc_get_order( $this->original_order_id );
 
     	// Main Function
-    	$this->main();
+    	$this->Main();
     }
 
    	/**
@@ -75,8 +75,11 @@ class WC_Split_Order {
     	// Duplicate Order ( Make a new order exactly same as original one )
     	$this->duplicateOrder();
 
-    	// Update New Order ( Remove Items which are not included in new order )
+    	// Update New Order ( Remove Items which are not included in new order, Update Items' qty )
     	$this->updateNewOrder();
+
+    	// Update Original Order ( Remove Items which are not included in original order, Update Items' qty )
+    	//$this->updateOriginalOrder();
 
     	return true;
     }
@@ -94,6 +97,7 @@ class WC_Split_Order {
     	
     	foreach ( $this->line_items as $key => $element ) {
     		
+    		// $element[0] : product_id, $element[2] : qty
     		$newOrderItems[$element[1]] = $element[2];
     		
     	}
@@ -104,10 +108,12 @@ class WC_Split_Order {
     		$newItem_prodID  = $newItem['product_id'];
 
     		if ( ! isset($newOrderItems[$newItem_prodID]) ) {
+
     			// Remove this item
     			wc_delete_order_item($newItem_orderID);
     		}
  			else {
+
  				// Update this item's qty
  				$curProduct = new WC_Product( $newItem_prodID );
  				$newOrder->update_product( $newItem_orderID, $curProduct, array( "qty" => $newOrderItems[$newItem_prodID] ) );
@@ -131,23 +137,27 @@ class WC_Split_Order {
     	
     	foreach ( $this->line_items as $key => $element ) {
     		
+    		// $element[0] : order_item_id, $element[2] : qty
     		$newOrderItems[$element[0]] = $element[2];
     		
     	}
 
-    	foreach ( $this->orignal_order->get_items() as $key => $originalItem) {
+    	foreach ( $this->original_order->get_items() as $key => $originalItem ) {
 
-    		$originalItem_orderID = $key;
+    		$originalItem_orderID = $key; // $key : order_item_id
     		$originalItem_qty 	  = $originalItem['qty'];
 
     		if ( isset($newOrderItems[$originalItem_orderID]) ) {
     			if ( $originalItem_qty == $newOrderItems[$originalItem_orderID] ) {
+
     				// Remove this item
     				wc_delete_order_item($originalItem_orderID);
     			} else {
+
     				// Update this item's qty
     				$curProduct = new WC_Product( $originalItem['product_id'] );
- 					$newOrder->update_product( $newItem_orderID, $curProduct, array( "qty" => $newOrderItems[$originalItem_orderID] ) );
+    				$newQtyVal	= $originalItem_qty - $newOrderItems[$originalItem_orderID];
+ 					$this->original_order->update_product( $originalItem_orderID, $curProduct, array( "qty" => $newQtyVal ) );
     			}    			
     		}
    
@@ -204,18 +214,22 @@ class WC_Split_Order {
     }
 
     /**
-     * Duplicate Post Meta Data
+     * Duplicate Post Meta Data, Update Order Number
      * @param  void
      * @return bool
      */
     private function duplicateOrderData() {
 
-    	$original_MetaData = get_metadata( "post", $this->original_order_id );
-    	$original_MetaData['_order_number'][0] = $this->newOrderID;
+    	$new_MetaData = get_metadata( "post", $this->original_order_id );
 
-    	foreach ( $original_MetaData as $key => $value ) {
+    	foreach ( $new_MetaData as $key => $value ) {
+
+    		// $key : post meta key, $value[0] : post meta value
     		update_metadata( "post", $this->newOrderID, $key, $value[0] );
+    	
     	}
+
+    	$this->updateOrderNumber();
 
     	return true;
     }
@@ -306,10 +320,71 @@ class WC_Split_Order {
         return true;
     }
 
+    /**
+     * Update Original/New Orders' _order_number to show #XXX-X
+     * @param  array
+     * @return bool
+     */
+    private function updateOrderNumber() {
+
+    	// _child_count is a custom meta field that shows whether it is a parent or not
+    	$child_count = get_post_meta( $this->original_order_id, '_child_count', true );
+		
+		// Check if the original order is parent & if the original order is child
+		
+		if ( empty( $child_count ) ) {	
+
+			// If the original order is not parent
+			
+			// _parent_id is a custom meta field that shows whether it is child order or not
+			$parent_id = get_post_meta( $this->original_order_id, '_parent_id', true );
+
+			if ( empty( $parent_id ) ) {
+
+				// If the original order is not child
+
+				// Change original order to parent by adding custom field "_child_count"
+				update_post_meta( $this->original_order_id, '_child_count', '2' );
+				// Change original order's "_order_number" to XXX-1
+				update_post_meta( $this->original_order_id, '_order_number', $this->original_order_id . "-1" );
+
+				// Change new order's "_order_number" to XXX-2
+				update_post_meta( $this->newOrderID, '_order_number', $this->original_order_id . "-2" );
+				// Change new order to child by adding custom field "_parent_id"
+				update_post_meta( $this->newOrderID, '_parent_id', $this->original_order_id );
+			} 
+			else {
+
+				// If the original order is child
+
+				// Get order number index from parent id
+				$child_count = get_post_meta( $parent_id, '_child_count', true );
+
+				// Update parent order's child count for next child's order number
+				update_post_meta( $parent_id, '_child_count', $child_count + 1 );
+
+				// Set current order's _order_number 
+				update_post_meta( $this->newOrderID, '_order_number', $parent_id . '-' . ( $child_count + 1 ) );
+			}
+		}
+		else {
+
+			// If the order is primary
+
+            // Increase primary order's _child_count value for next child order
+			update_post_meta( $this->original_order_id, '_child_count', $child_count + 1 );
+
+            // Set new order's _order_number to parent_id - child_count+1
+			update_post_meta( $this->newOrderID, '_order_number', $this->original_order_id . '-' . ( $child_count + 1 ) );
+            // Set new order's _parent_id to primary's id
+			update_post_meta( $this->newOrderID, '_parent_id', $this->original_order_id );
+            // As new order has all meta fields same as primary order, it has _child_count. So it should remove it.
+			delete_post_meta( $this->newOrderID, '_child_count' );
+		}
+
+    	return true;
+    }
+
 }
 
 endif;
-
-/**
- *	get_order
- */
