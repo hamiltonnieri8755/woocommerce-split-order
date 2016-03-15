@@ -177,7 +177,7 @@ class WC_Split_Order {
     	
     	// Duplicate Items - line_item, shipping and coupon ; order_item, order_itemmeta
     	$this->duplicateLineItems();
-    	$this->duplicateShippingItems();
+    	//$this->duplicateShippingItems();
     	$this->duplicateCouponItems();
 
     	return true;
