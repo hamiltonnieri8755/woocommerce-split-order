@@ -78,7 +78,7 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	function split_order_action() {
 
 		if ( ! class_exists( 'WC_Split_Order' ) )
-	    	require_once plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order.php';
+	    	require_once(plugin_dir_path( __FILE__ ) . 'classes/class-wc-split-order.php');
 
 		if( ! isset($_POST['orderData']) )
 		{
@@ -92,6 +92,8 @@ if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) :
 	    $line_items = $input['line_items'];
 
 	    $wso = new WC_Split_Order( $order_id, $line_items );
+
+	    // Return new order's ID
 	    echo $wso->newOrderID;
 
 	    exit;

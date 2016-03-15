@@ -21,7 +21,7 @@ class WC_Split_Order {
 
 	/** 
 	 *	Original Order ID
-	 *	Int
+	 *	integer
 	 */
 	private $original_order_id;
 

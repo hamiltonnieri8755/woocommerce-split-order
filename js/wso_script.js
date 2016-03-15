@@ -1,3 +1,4 @@
+// "Split Order" button on custom meta box click event handler
 jQuery(".open-modal").click( function () {
 
 	jQuery(".order-item-qty").each( function () {
@@ -9,6 +10,7 @@ jQuery(".open-modal").click( function () {
 
 });
 
+// Qty input box valueChanged event handler for value range
 function onQtyChange() {
 
 	var curVal = parseInt( jQuery(this).val() );
@@ -27,6 +29,7 @@ function onQtyChange() {
 }
 jQuery(".order-item-qty").keyup( onQtyChange );
 
+// Checkbox tick event handler for showing qty input box
 function onAddCheckboxChange() {
 
 	if ( jQuery(this).prop("checked") )	{
@@ -38,10 +41,12 @@ function onAddCheckboxChange() {
 }
 jQuery(".flag_add").change( onAddCheckboxChange );
 
+// "Close" button click event handler, remove split modal thickbox
 jQuery(".close-modal").click( function () {
 	tb_remove();
 });
 
+// "Split Order" button on splitting thickbox event handler
 jQuery(".split-order").click( function () {
 
 	tb_remove();
@@ -80,6 +85,7 @@ jQuery(".split-order").click( function () {
 		return;
 	}
 
+	// Make JSON variable for AJAX
 	var orderData = {};
 	orderData["order_id"] = jQuery(this).parent().data("id");
 	orderData.line_items = newOrderData;
@@ -93,6 +99,7 @@ jQuery(".split-order").click( function () {
 
 });
 
+// Show link to new order, and remove localstorage value not to show it again
 jQuery(document).ready(function () {
 	if ( localStorage.getItem( "parent" + jQuery(".button-wrapper").data("id") ) ) {
 		var url = jQuery(location).attr("href");
