@@ -81,7 +81,7 @@ class WC_Split_Order_UI {
      * @return void
      */
     public function wso_enqueue() {
-        wp_enqueue_style( 'ws-style-custom', plugins_url( 'css/wso_style.css', dirname(__FILE__) ) );
+        wp_enqueue_style( 'wso-style-custom', plugins_url( 'css/wso_style.css', dirname(__FILE__) ) );
         wp_enqueue_script( 'wso-script-main', plugins_url( 'js/wso_script.js', dirname(__FILE__) ), array(), '1.0.0', true);
     }
 
